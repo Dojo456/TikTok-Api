@@ -6,7 +6,7 @@ import random
 import time
 import json
 
-from playwright.async_api import async_playwright
+from playwright.async_api import async_playwright, Page
 from urllib.parse import urlencode, quote, urlparse
 from .stealth import stealth_async
 from .helpers import random_choice
@@ -143,6 +143,7 @@ class TikTokApi:
         sleep_after: int = 1,
         cookies: dict = None,
         suppress_resource_load_types: list[str] = None,
+        after_page_load: Callable[[Page], None] = None
     ):
         """Create a TikTokPlaywrightSession"""
         if ms_token is not None:
@@ -179,9 +180,9 @@ class TikTokApi:
             )
 
         await page.goto(url)
-        time.sleep(5)
-        await page.mouse.move(0,0)
-        await page.mouse.move(0,100)
+
+        if after_page_load:
+            after_page_load(page)
 
         session = TikTokPlaywrightSession(
             context,
@@ -216,7 +217,8 @@ class TikTokApi:
         cookies: list[dict] = None,
         suppress_resource_load_types: list[str] = None,
         browser: str = "chromium",
-        executable_path: str = None
+        executable_path: str = None,
+        after_page_load: Callable[[Page], None] = None
     ):
         """
         Create sessions for use within the TikTokApi class.
@@ -237,6 +239,7 @@ class TikTokApi:
             suppress_resource_load_types (list[str]): Types of resources to suppress playwright from loading, excluding more types will make playwright faster.. Types: document, stylesheet, image, media, font, script, textrack, xhr, fetch, eventsource, websocket, manifest, other.
             browser (str): specify either firefox or chromium, default is chromium
             executable_path (str): Path to the browser executable
+            after_page_load(callable): A function that will execute after the page is loaded, mostly used to overcome bot detection.
 
         Example Usage:
             .. code-block:: python
@@ -274,6 +277,7 @@ class TikTokApi:
                     sleep_after=sleep_after,
                     cookies=random_choice(cookies),
                     suppress_resource_load_types=suppress_resource_load_types,
+                    after_page_load=after_page_load
                 )
                 for _ in range(num_sessions)
             )
