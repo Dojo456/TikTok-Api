@@ -1,7 +1,7 @@
 import asyncio
 import logging
 import dataclasses
-from typing import Any
+from typing import Any, Callable
 import random
 import time
 import json
