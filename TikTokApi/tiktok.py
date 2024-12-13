@@ -143,7 +143,7 @@ class TikTokApi:
         sleep_after: int = 1,
         cookies: dict = None,
         suppress_resource_load_types: list[str] = None,
-        after_page_load: Callable[[Page], None] = None
+        after_page_load: Callable[[Page], Awaitable[None]] = None,
     ):
         """Create a TikTokPlaywrightSession"""
         if ms_token is not None:
@@ -174,15 +174,17 @@ class TikTokApi:
         if suppress_resource_load_types is not None:
             await page.route(
                 "**/*",
-                lambda route, request: route.abort()
-                if request.resource_type in suppress_resource_load_types
-                else route.continue_(),
+                lambda route, request: (
+                    route.abort()
+                    if request.resource_type in suppress_resource_load_types
+                    else route.continue_()
+                ),
             )
 
         await page.goto(url)
 
         if after_page_load:
-            after_page_load(page)
+            await after_page_load(page)
 
         session = TikTokPlaywrightSession(
             context,
@@ -218,7 +220,7 @@ class TikTokApi:
         suppress_resource_load_types: list[str] = None,
         browser: str = "chromium",
         executable_path: str = None,
-        after_page_load: Callable[[Page], None] = None
+        after_page_load: Callable[[Page], Awaitable[None]] = None,
     ):
         """
         Create sessions for use within the TikTokApi class.
@@ -254,15 +256,24 @@ class TikTokApi:
                 override_browser_args = ["--headless=new"]
                 headless = False  # managed by the arg
             self.browser = await self.playwright.chromium.launch(
-                headless=headless, args=override_browser_args, proxy=random_choice(proxies), executable_path=executable_path
+                headless=headless,
+                args=override_browser_args,
+                proxy=random_choice(proxies),
+                executable_path=executable_path,
             )
         elif browser == "firefox":
             self.browser = await self.playwright.firefox.launch(
-                headless=headless, args=override_browser_args, proxy=random_choice(proxies), executable_path=executable_path
+                headless=headless,
+                args=override_browser_args,
+                proxy=random_choice(proxies),
+                executable_path=executable_path,
             )
         elif browser == "webkit":
             self.browser = await self.playwright.webkit.launch(
-                headless=headless, args=override_browser_args, proxy=random_choice(proxies), executable_path=executable_path
+                headless=headless,
+                args=override_browser_args,
+                proxy=random_choice(proxies),
+                executable_path=executable_path,
             )
         else:
             raise ValueError("Invalid browser argument passed")
@@ -277,7 +288,7 @@ class TikTokApi:
                     sleep_after=sleep_after,
                     cookies=random_choice(cookies),
                     suppress_resource_load_types=suppress_resource_load_types,
-                    after_page_load=after_page_load
+                    after_page_load=after_page_load,
                 )
                 for _ in range(num_sessions)
             )
@@ -459,7 +470,9 @@ class TikTokApi:
                 raise Exception("TikTokApi.run_fetch_script returned None")
 
             if result == "":
-                raise EmptyResponseException(result, "TikTok returned an empty response")
+                raise EmptyResponseException(
+                    result, "TikTok returned an empty response"
+                )
 
             try:
                 data = json.loads(result)
